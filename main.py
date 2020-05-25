@@ -27,7 +27,7 @@ print(X.head(20))
 
 
 
-# выводим количество пользователей и фильмов
+# выводим количество пользователей и ссылок
 n_users = X['author'].unique().shape[0]
 n_items = X['url'].unique().shape[0]
 
