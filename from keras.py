@@ -7,9 +7,11 @@ from sklearn.model_selection import train_test_split
 from keras.layers import Input, Embedding, Flatten, Dot, Dense, Concatenate
 from keras.models import Model
 
+import warnings
+warnings.filterwarnings('ignore')
 from random import randint
 
-data = pd.read_csv('data.csv', header=0, na_values='?', delimiter=',', nrows =20000)
+data = pd.read_csv('data.csv', header=0, na_values='?', delimiter=',', nrows =40000)
 
 
 print('Количество строк и столбцов:', data.shape)
@@ -26,6 +28,8 @@ X.dropna(subset=['url'], inplace=True)
 
 # добавляем новый столбец он будет хранить у каких пользоватлей есть переходы по сылкам
 X['test'] = 1
+X['url_text'] = data['url'] 
+X['author_text'] = data['author']
 
 from sklearn.preprocessing import LabelEncoder
 labelencoder = LabelEncoder()
@@ -53,10 +57,13 @@ author_input = Input(shape=[1], name="Author-Input")
 author_embedding = Embedding(n_author+1, 5, name="Author-Embedding")(author_input)
 author_vec = Flatten(name="Flatten-Author")(author_embedding)
 
-# performing dot product and creating model
+#Подготовка dot слоя и создание модели
 prod = Dot(name="Dot-Product", axes=1)([url_vec, author_vec])
 model = Model([author_input, url_input], prod)
 model.compile('adam', 'mean_squared_error')
+
+from keras.utils import plot_model
+plot_model(model, to_file='model.png', show_shapes=True)
 
 from keras.models import load_model
 
@@ -87,3 +94,11 @@ recommended_url_ids = (-predictions).argsort()[:5]
 print('id ссылок, которые рекомендуем:',recommended_url_ids)
 
 print('Прогнозируемы результат в вещественных числах:', predictions[recommended_url_ids])
+
+url_itog = X[X['url'].isin(recommended_url_ids)]
+
+#удаляем дубликаты
+url_itog.drop_duplicates(subset ="url_text", inplace = True) 
+
+for url in url_itog['url_text']:
+    print('Рекомендуем - ', url)
