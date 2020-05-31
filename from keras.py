@@ -1,3 +1,4 @@
+
 import os
 import numpy as np
 import pandas as pd
@@ -11,7 +12,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from random import randint
 
-data = pd.read_csv('data.csv', header=0, na_values='?', delimiter=',', nrows =40000)
+data = pd.read_csv('data.csv', header=0, na_values='?', delimiter=',', nrows =60000)
 
 
 print('Количество строк и столбцов:', data.shape)
@@ -27,7 +28,7 @@ X = X.drop('created_at', axis='columns')
 X.dropna(subset=['url'], inplace=True)
 
 # добавляем новый столбец он будет хранить у каких пользоватлей есть переходы по сылкам
-X['test'] = 1
+X['raiting'] = 1
 X['url_text'] = data['url'] 
 X['author_text'] = data['author']
 
@@ -46,6 +47,8 @@ train, test = train_test_split(X, test_size=0.2, random_state=42)
 
 n_author = len(X.author.unique())
 n_url = len(X.url.unique())
+
+print(n_author, n_url)
 
 # Создаем url embedding path
 url_input = Input(shape=[1], name="Url-Input")
@@ -70,11 +73,21 @@ from keras.models import load_model
 if os.path.exists('model.h5'):
     model = load_model('model.h5')
 else:
-    history = model.fit([train.author, train.url], train.test, epochs=5, verbose=1)
+    history = model.fit([train.author, train.url], train.raiting, epochs=7, verbose=1)
     model.save('model.h5')
     plt.plot(history.history['loss'])
     plt.xlabel("Epochs")
     plt.ylabel("Training Error")
+
+url_em = model.get_layer('Url-Embedding')
+url_em_weights = url_em.get_weights()[0]
+
+from sklearn.decomposition import PCA
+import seaborn as sns
+
+pca = PCA(n_components=2)
+pca_result = pca.fit_transform(url_em_weights)
+sns.scatterplot(x=pca_result[:,0], y=pca_result[:,1])
 
 
 #Создание рекомендация для 101-го пользователя
